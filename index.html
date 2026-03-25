@@ -19,318 +19,66 @@
 </head>
 <body>
     <div id="auth-section" style="text-align: center; margin-top: 50px;">
-    <h2>🔒 เข้าสู่ระบบ Smart Wallet</h2>
-    
-    <div style="margin-bottom: 10px;">
-        <input type="text" id="auth-username" placeholder="ชื่อผู้ใช้" style="padding: 8px; width: 200px;">
-    </div>
-    <div style="margin-bottom: 10px;">
-        <input type="password" id="auth-password" placeholder="รหัสผ่าน" style="padding: 8px; width: 200px;">
-    </div>
-    
-    <button onclick="login()" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">เข้าสู่ระบบ</button>
-    <button onclick="register()" style="padding: 8px 15px; background-color: #2196F3; color: white; border: none; cursor: pointer;">สมัครสมาชิก</button>
-    
-    <p id="auth-message" style="color: red; font-size: 14px;"></p>
-</div>
-
-<div id="app-section" style="display: none;">
-
-    <div class="container mt-5" style="max-width: 900px;">
+        <h2>🔒 เข้าสู่ระบบ Smart Wallet</h2>
         
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold text-dark mb-0">📊 ระบบจัดการรายรับ-รายจ่าย</h2>
-            <select id="monthFilter" class="form-select w-auto shadow-sm border-primary" onchange="renderData()">
-                <option value="all">ดูทั้งหมด</option>
-            </select>
+        <div style="margin-bottom: 10px;">
+            <input type="text" id="auth-username" placeholder="ชื่อผู้ใช้" style="padding: 8px; width: 200px;">
         </div>
-
-        <div class="row text-center mb-4">
-            <div class="col-md-4 mb-2">
-                <div class="card card-summary bg-balance shadow-sm p-3">
-                    <h5>ยอดคงเหลือ</h5>
-                    <h3 id="balance">฿0.00</h3>
-                </div>
-            </div>
-            <div class="col-md-4 mb-2">
-                <div class="card card-summary bg-income shadow-sm p-3">
-                    <h5>รายรับรวม</h5>
-                    <h3 id="total-income">฿0.00</h3>
-                </div>
-            </div>
-            <div class="col-md-4 mb-2">
-                <div class="card card-summary bg-expense shadow-sm p-3">
-                    <h5>รายจ่ายรวม</h5>
-                    <h3 id="total-expense">฿0.00</h3>
-                </div>
-            </div>
+        <div style="margin-bottom: 10px;">
+            <input type="password" id="auth-password" placeholder="รหัสผ่าน" style="padding: 8px; width: 200px;">
         </div>
-
-        <div class="row">
-            <div class="col-md-5 mb-4">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="fw-bold mb-3 text-secondary">➕ เพิ่มรายการใหม่</h5>
-                        <input type="date" id="txDate" class="form-control mb-2">
-                        <input type="text" id="txTitle" class="form-control mb-2" placeholder="ชื่อรายการ">
-                        <input type="number" id="txAmount" class="form-control mb-2" placeholder="จำนวนเงิน">
-                        <select id="txType" class="form-select mb-3">
-                            <option value="income">รายรับ 📈</option>
-                            <option value="expense">รายจ่าย 📉</option>
-                        </select>
-                        <button class="btn btn-primary w-100" onclick="addTransaction()">บันทึกข้อมูล</button>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm">
-                    <div class="card-body text-center">
-                        <h5 class="fw-bold mb-3 text-secondary">สัดส่วนรายรับ - รายจ่าย</h5>
-                        <div class="chart-container">
-                            <canvas id="myChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-7 mb-4">
-                <h5 class="fw-bold mb-3 text-secondary">ประวัติการทำรายการ</h5>
-                <div class="list-group shadow-sm" id="historyList" style="max-height: 500px; overflow-y: auto;">
-                    </div>
-            </div>
-        </div>
+        
+        <button onclick="login()" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">เข้าสู่ระบบ</button>
+        <button onclick="register()" style="padding: 8px 15px; background-color: #2196F3; color: white; border: none; cursor: pointer;">สมัครสมาชิก</button>
+        
+        <p id="auth-message" style="color: red; font-size: 14px; margin-top: 15px;"></p>
     </div>
 
-    <script>
-        const API_URL = "https://money-i5du.onrender.com/transactions";
+    <div id="app-section" style="display: none;">
+        <div style="text-align: right; padding: 10px; max-width: 900px; margin: 0 auto;">
+            <button onclick="logout()" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 5px;">🚪 ออกจากระบบ</button>
+        </div>
 
-        // 1. ฟังก์ชันสลับไปหน้าแอป (ตอนล็อกอินผ่าน)
-        function showApp() {
-            document.getElementById("auth-section").style.display = "none";
-            document.getElementById("app-section").style.display = "block";
-        }
-
-        // 2. ฟังก์ชันสลับไปหน้าล็อกอิน (ตอนยังไม่ล็อกอิน หรือกดออกจากระบบ)
-        function showLogin() {
-            document.getElementById("auth-section").style.display = "block";
-            document.getElementById("app-section").style.display = "none";
-        }
-
-        const formatMoney = (number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(number);
-
-        document.getElementById('txDate').valueAsDate = new Date();
-
-        let chartInstance = null;
-        let allTransactions = []; // 🌟 ตัวแปรเก็บข้อมูลทั้งหมดที่โหลดมาจากเซิร์ฟเวอร์
-
-        // 🌟 แปลง ปี-เดือน (เช่น 2026-03) เป็นชื่อเดือนภาษาไทย (มีนาคม 2026)
-        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-        function getThaiMonthYear(yyyyMm) {
-            const parts = yyyyMm.split('-');
-            const year = parts[0];
-            const monthIndex = parseInt(parts[1]) - 1;
-            return `${thaiMonths[monthIndex]} ${year}`;
-        }
-
-        function updateChart(income, expense) {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            if (chartInstance != null) chartInstance.destroy();
-
-            if (income === 0 && expense === 0) {
-                chartInstance = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: { labels: ['ไม่มีข้อมูล'], datasets: [{ data: [1], backgroundColor: ['#e9ecef'], borderWidth: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: false } } }
-                });
-                return;
-            }
-
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['รายรับ', 'รายจ่าย'],
-                    datasets: [{
-                        data: [income, expense],
-                        backgroundColor: ['#198754', '#dc3545'],
-                        hoverOffset: 4, borderWidth: 0
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-            });
-        }
-
-        // 1. ดึงข้อมูลจากเซิร์ฟเวอร์แค่ครั้งเดียว แล้วสร้างตัวเลือกเดือน
-        async function loadData() {
-
-            // 1. หยิบ Token ออกมาจากลิ้นชัก
-            const token = localStorage.getItem("token");
-
-            const response = await fetch(`${API_URL}/transactions`, {
-                method: "GET",
-                headers: { 
-                    "Content-Type": "application/json",
-                    // 2. แนบบัตรผ่านทางส่งไปให้ยาม
-                    "Authorization": "Bearer " + token 
-                }
-            });
+        <div class="container mt-2" style="max-width: 900px;">
             
-            const data = await response.json();
-            allTransactions = data.transactions; // เก็บข้อมูลลงตัวแปรหลัก
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold text-dark mb-0">📊 ระบบจัดการรายรับ-รายจ่าย</h2>
+                <select id="monthFilter" class="form-select w-auto shadow-sm border-primary" onchange="renderData()">
+                    <option value="all">ดูทั้งหมด</option>
+                </select>
+            </div>
 
-            const monthFilter = document.getElementById("monthFilter");
-            const currentSelected = monthFilter.value; // จำค่าเดิมที่เลือกไว้
-
-            // หาว่ามีเดือนไหนบ้างในระบบ (รูปแบบ YYYY-MM) โดยใช้ Set ช่วยตัดตัวซ้ำออก
-            const uniqueMonths = [...new Set(allTransactions.map(tx => tx.date.substring(0, 7)))].sort().reverse();
-            
-            // สร้าง Dropdown ใหม่
-            monthFilter.innerHTML = '<option value="all">ดูทั้งหมด</option>';
-            uniqueMonths.forEach(month => {
-                monthFilter.innerHTML += `<option value="${month}">${getThaiMonthYear(month)}</option>`;
-            });
-
-            // คืนค่าที่เลือกไว้ ถ้าเดือนนั้นยังมีอยู่
-            if (currentSelected !== "all" && uniqueMonths.includes(currentSelected)) {
-                monthFilter.value = currentSelected;
-            }
-
-            renderData(); // สั่งให้แสดงผลตามตัวกรอง
-        }
-
-        // 🌟 2. ฟังก์ชันคำนวณและแสดงผล (แยกตามเดือนที่เลือก)
-        function renderData() {
-            const selectedMonth = document.getElementById("monthFilter").value;
-            let filteredTransactions = allTransactions;
-
-            // กรองข้อมูลเฉพาะเดือนที่เลือก (ถ้าไม่ได้เลือก "ดูทั้งหมด")
-            if (selectedMonth !== "all") {
-                filteredTransactions = allTransactions.filter(tx => tx.date.startsWith(selectedMonth));
-            }
-
-            let totalIncome = 0;
-            let totalExpense = 0;
-            const list = document.getElementById("historyList");
-            list.innerHTML = "";
-
-            // วนลูปวาดรายการของเดือนนั้นๆ
-            filteredTransactions.forEach(tx => {
-                if (tx.ttype === "income") totalIncome += tx.amount;
-                else totalExpense += tx.amount;
-
-                const isIncome = tx.ttype === "income";
-                const sign = isIncome ? "+" : "-";
-                const colorClass = isIncome ? "text-success" : "text-danger";
-                const borderClass = isIncome ? "item-income" : "item-expense";
-
-                list.innerHTML += `
-                    <div class="list-group-item d-flex justify-content-between align-items-center p-3 ${borderClass}">
-                        <div>
-                            <span class="fs-5">${tx.title}</span><br>
-                            <small class="text-muted">📅 ${tx.date}</small>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="fs-5 fw-bold ${colorClass}">${sign}${formatMoney(tx.amount).replace('฿', '')}</span>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="deleteTx(${tx.id})">❌</button>
-                        </div>
+            <div class="row text-center mb-4">
+                <div class="col-md-4 mb-2">
+                    <div class="card card-summary bg-balance shadow-sm p-3">
+                        <h5>ยอดคงเหลือ</h5>
+                        <h3 id="balance">฿0.00</h3>
                     </div>
-                `;
-            });
+                </div>
+                <div class="col-md-4 mb-2">
+                    <div class="card card-summary bg-income shadow-sm p-3">
+                        <h5>รายรับรวม</h5>
+                        <h3 id="total-income">฿0.00</h3>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <div class="card card-summary bg-expense shadow-sm p-3">
+                        <h5>รายจ่ายรวม</h5>
+                        <h3 id="total-expense">฿0.00</h3>
+                    </div>
+                </div>
+            </div>
 
-            // อัปเดตตัวเลขและกราฟของเดือนที่เลือก
-            const balance = totalIncome - totalExpense;
-            document.getElementById("balance").innerText = formatMoney(balance);
-            document.getElementById("total-income").innerText = formatMoney(totalIncome);
-            document.getElementById("total-expense").innerText = formatMoney(totalExpense);
-            
-            updateChart(totalIncome, totalExpense);
-        }
-
-        // 3. เพิ่มรายการใหม่
-        async function addTransaction(event) {
-    // ป้องกันไม่ให้หน้าเว็บรีเฟรชตอนกดปุ่ม Submit (ถ้าใช้แท็ก <form>)
-    if (event) event.preventDefault(); 
-
-    // 1. ดึงข้อมูลจากฟอร์มที่คุณครูสร้างไว้
-    const dateInput = document.getElementById("date").value;
-    const titleInput = document.getElementById("title").value;
-    const amountInput = parseFloat(document.getElementById("amount").value);
-    const typeInput = document.getElementById("ttype").value;
-
-    // 🌟 2. หยิบ Token ออกมาจากลิ้นชัก (Local Storage)
-    const token = localStorage.getItem("token");
-
-    // เช็คก่อนว่ามี Token ไหม (เผื่อแอบเข้ามาโดยไม่ได้ล็อกอิน)
-    if (!token) {
-        alert("กรุณาเข้าสู่ระบบก่อนเพิ่มข้อมูลครับ!");
-        showLogin();
-        return;
-    }
-
-    // 3. ส่งข้อมูลไปให้หลังบ้าน (FastAPI) พร้อมยื่นบัตรผ่านทาง
-    const response = await fetch(`${API_URL}/transactions`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token   // 🌟 แนบ Token ส่งไปให้ยามตรวจ!
-        },
-        body: JSON.stringify({
-            date: dateInput,
-            title: titleInput,
-            amount: amountInput,
-            ttype: typeInput
-        })
-    });
-
-    if (response.ok) {
-        // ถ้าบันทึกสำเร็จ ให้ล้างช่องกรอกข้อมูล
-        document.getElementById("title").value = "";
-        document.getElementById("amount").value = "";
-        
-        // 🌟 เรียกฟังก์ชันดึงข้อมูลมาแสดงใหม่ทันที
-        fetchTransactions(); 
-    } else {
-        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลครับ (Token อาจจะหมดอายุ)");
-        // ถ้า Token หมดอายุ ก็เตะกลับไปหน้าล็อกอิน
-        logout(); 
-    }
-}
-
-        // 4. ลบรายการ
-        async function deleteTx(id) {
-            if(confirm("ลบรายการนี้ใช่หรือไม่?")) {
-                await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-                loadData();
-            }
-        }
-
-        async function register() {
-            const u = document.getElementById("auth-username").value;
-            const p = document.getElementById("auth-password").value;
-            const msg = document.getElementById("auth-message");
-
-            if (!u || !p) {
-                msg.innerText = "กรุณากรอกชื่อและรหัสผ่านให้ครบถ้วนครับ";
-                return;
-            }
-
-            const response = await fetch(`${API_URL}/register`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: u, password: p })
-            });
-
-            if (response.ok) {
-                msg.style.color = "green";
-                msg.innerText = "🎉 สมัครสมาชิกสำเร็จ! กดปุ่มเข้าสู่ระบบได้เลยครับ";
-            } else {
-                const errorData = await response.json();
-                msg.style.color = "red";
-                msg.innerText = "❌ " + (errorData.detail || "เกิดข้อผิดพลาดในการสมัคร");
-            }
-        }
-
-        // เปิดเว็บมาครั้งแรก ให้โหลดข้อมูล
-        loadData();
-    </script>
-</div>
-</body>
-</html>
+            <div class="row">
+                <div class="col-md-5 mb-4">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 text-secondary">➕ เพิ่มรายการใหม่</h5>
+                            <input type="date" id="txDate" class="form-control mb-2">
+                            <input type="text" id="txTitle" class="form-control mb-2" placeholder="ชื่อรายการ">
+                            <input type="number" id="txAmount" class="form-control mb-2" placeholder="จำนวนเงิน">
+                            <select id="txType" class="form-select mb-3">
+                                <option value="income">รายรับ 📈</option>
+                                <option value="expense">รายจ่าย 📉</option>
+                            </select>
+                            <button class="btn btn-primary w
