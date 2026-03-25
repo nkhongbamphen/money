@@ -18,6 +18,23 @@
     </style>
 </head>
 <body>
+    <div id="auth-section" style="text-align: center; margin-top: 50px;">
+    <h2>🔒 เข้าสู่ระบบ Smart Wallet</h2>
+    
+    <div style="margin-bottom: 10px;">
+        <input type="text" id="auth-username" placeholder="ชื่อผู้ใช้" style="padding: 8px; width: 200px;">
+    </div>
+    <div style="margin-bottom: 10px;">
+        <input type="password" id="auth-password" placeholder="รหัสผ่าน" style="padding: 8px; width: 200px;">
+    </div>
+    
+    <button onclick="login()" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">เข้าสู่ระบบ</button>
+    <button onclick="register()" style="padding: 8px 15px; background-color: #2196F3; color: white; border: none; cursor: pointer;">สมัครสมาชิก</button>
+    
+    <p id="auth-message" style="color: red; font-size: 14px;"></p>
+</div>
+
+<div id="app-section" style="display: none;">
 
     <div class="container mt-5" style="max-width: 900px;">
         
@@ -85,6 +102,19 @@
 
     <script>
         const API_URL = "https://money-i5du.onrender.com/transactions";
+
+        // 1. ฟังก์ชันสลับไปหน้าแอป (ตอนล็อกอินผ่าน)
+        function showApp() {
+            document.getElementById("auth-section").style.display = "none";
+            document.getElementById("app-section").style.display = "block";
+        }
+
+        // 2. ฟังก์ชันสลับไปหน้าล็อกอิน (ตอนยังไม่ล็อกอิน หรือกดออกจากระบบ)
+        function showLogin() {
+            document.getElementById("auth-section").style.display = "block";
+            document.getElementById("app-section").style.display = "none";
+        }
+
         const formatMoney = (number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(number);
 
         document.getElementById('txDate').valueAsDate = new Date();
@@ -130,7 +160,19 @@
 
         // 1. ดึงข้อมูลจากเซิร์ฟเวอร์แค่ครั้งเดียว แล้วสร้างตัวเลือกเดือน
         async function loadData() {
-            const response = await fetch(API_URL);
+
+            // 1. หยิบ Token ออกมาจากลิ้นชัก
+            const token = localStorage.getItem("token");
+
+            const response = await fetch(`${API_URL}/transactions`, {
+                method: "GET",
+                headers: { 
+                    "Content-Type": "application/json",
+                    // 2. แนบบัตรผ่านทางส่งไปให้ยาม
+                    "Authorization": "Bearer " + token 
+                }
+            });
+            
             const data = await response.json();
             allTransactions = data.transactions; // เก็บข้อมูลลงตัวแปรหลัก
 
@@ -203,27 +245,54 @@
         }
 
         // 3. เพิ่มรายการใหม่
-        async function addTransaction() {
-            const date = document.getElementById("txDate").value;
-            const title = document.getElementById("txTitle").value;
-            const amount = parseFloat(document.getElementById("txAmount").value);
-            const ttype = document.getElementById("txType").value;
+        async function addTransaction(event) {
+    // ป้องกันไม่ให้หน้าเว็บรีเฟรชตอนกดปุ่ม Submit (ถ้าใช้แท็ก <form>)
+    if (event) event.preventDefault(); 
 
-            if (!date || !title || isNaN(amount) || amount <= 0) {
-                alert("กรุณากรอกข้อมูลให้ครบและถูกต้องครับ!");
-                return;
-            }
+    // 1. ดึงข้อมูลจากฟอร์มที่คุณครูสร้างไว้
+    const dateInput = document.getElementById("date").value;
+    const titleInput = document.getElementById("title").value;
+    const amountInput = parseFloat(document.getElementById("amount").value);
+    const typeInput = document.getElementById("ttype").value;
 
-            await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ date, title, amount, ttype })
-            });
+    // 🌟 2. หยิบ Token ออกมาจากลิ้นชัก (Local Storage)
+    const token = localStorage.getItem("token");
 
-            document.getElementById("txTitle").value = "";
-            document.getElementById("txAmount").value = "";
-            loadData(); // ดึงข้อมูลใหม่และเรนเดอร์ใหม่
-        }
+    // เช็คก่อนว่ามี Token ไหม (เผื่อแอบเข้ามาโดยไม่ได้ล็อกอิน)
+    if (!token) {
+        alert("กรุณาเข้าสู่ระบบก่อนเพิ่มข้อมูลครับ!");
+        showLogin();
+        return;
+    }
+
+    // 3. ส่งข้อมูลไปให้หลังบ้าน (FastAPI) พร้อมยื่นบัตรผ่านทาง
+    const response = await fetch(`${API_URL}/transactions`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token   // 🌟 แนบ Token ส่งไปให้ยามตรวจ!
+        },
+        body: JSON.stringify({
+            date: dateInput,
+            title: titleInput,
+            amount: amountInput,
+            ttype: typeInput
+        })
+    });
+
+    if (response.ok) {
+        // ถ้าบันทึกสำเร็จ ให้ล้างช่องกรอกข้อมูล
+        document.getElementById("title").value = "";
+        document.getElementById("amount").value = "";
+        
+        // 🌟 เรียกฟังก์ชันดึงข้อมูลมาแสดงใหม่ทันที
+        fetchTransactions(); 
+    } else {
+        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลครับ (Token อาจจะหมดอายุ)");
+        // ถ้า Token หมดอายุ ก็เตะกลับไปหน้าล็อกอิน
+        logout(); 
+    }
+}
 
         // 4. ลบรายการ
         async function deleteTx(id) {
@@ -233,8 +302,35 @@
             }
         }
 
+        async function register() {
+            const u = document.getElementById("auth-username").value;
+            const p = document.getElementById("auth-password").value;
+            const msg = document.getElementById("auth-message");
+
+            if (!u || !p) {
+                msg.innerText = "กรุณากรอกชื่อและรหัสผ่านให้ครบถ้วนครับ";
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            if (response.ok) {
+                msg.style.color = "green";
+                msg.innerText = "🎉 สมัครสมาชิกสำเร็จ! กดปุ่มเข้าสู่ระบบได้เลยครับ";
+            } else {
+                const errorData = await response.json();
+                msg.style.color = "red";
+                msg.innerText = "❌ " + (errorData.detail || "เกิดข้อผิดพลาดในการสมัคร");
+            }
+        }
+
         // เปิดเว็บมาครั้งแรก ให้โหลดข้อมูล
         loadData();
     </script>
+</div>
 </body>
 </html>
