@@ -270,6 +270,8 @@
                 return;
             }
 
+            // ... (โค้ดช่วงแรกเหมือนเดิม) ...
+
             const response = await fetch(`${API_URL}/transactions`, {
                 method: "POST",
                 headers: {
@@ -280,17 +282,21 @@
                     date: dateInput,
                     title: titleInput,
                     amount: amountInput,
-                    ttype: typeInput
+                    ttype: typeInput // ⚠️ จุดที่มักจะผิดคือคำว่า ttype ครับ
                 })
             });
 
             if (response.ok) {
                 document.getElementById("txTitle").value = "";
                 document.getElementById("txAmount").value = "";
-                loadData(); // เรียกให้โหลดข้อมูลใหม่
+                loadData(); 
             } else {
-                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลครับ (Token อาจจะหมดอายุ)");
-                logout(); 
+                // 🌟 เพิ่มโค้ดส่วนนี้ เพื่อดักจับ Error จากหลังบ้านมาโชว์!
+                const errorData = await response.json();
+                console.log(errorData); // ปริ้นลง Console
+                alert("เซิร์ฟเวอร์แจ้งเตือน: " + JSON.stringify(errorData)); 
+                // ชั่วคราว: ปิดฟังก์ชัน logout() ไว้ก่อน จะได้ไม่ต้องล็อกอินใหม่รัวๆ
+                // logout(); 
             }
         }
 
