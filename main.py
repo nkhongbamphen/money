@@ -143,26 +143,33 @@ class UserResponse(BaseModel):
         from_attributes = True  # ใช้ orm_mode = True ถ้าคุณใช้ Pydantic v1
 
 # ==========================================
-# 2. API สำหรับจัดการบัญชี
+# 2. API สำหรับจัดการบัญชี (อัปเดตระบบรักษาความปลอดภัยแล้ว)
 # ==========================================
 
 @app.get("/transactions")
-def get_transactions(db: Session = Depends(get_db)):
-    # ดึงข้อมูลเรียงตามวันที่ล่าสุด และ ID ล่าสุด
-    transactions = db.query(TransactionDB).order_by(TransactionDB.date.desc(), TransactionDB.id.desc()).all()
+def get_transactions(db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    # 🌟 ดึงข้อมูลเฉพาะของคนที่ล็อกอินเข้ามาเท่านั้น!
+    transactions = db.query(TransactionDB).filter(TransactionDB.owner_id == current_user.id).order_by(TransactionDB.date.desc(), TransactionDB.id.desc()).all()
     return {"transactions": transactions}
 
 @app.post("/transactions")
-def add_transaction(tx: TransactionCreate, db: Session = Depends(get_db)):
-    # 🌟 บันทึกวันที่ลงไปในฐานข้อมูลด้วย
-    new_tx = TransactionDB(date=tx.date, title=tx.title, amount=tx.amount, ttype=tx.ttype)
+def add_transaction(tx: TransactionCreate, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    # 🌟 บันทึกข้อมูล พร้อมกับแนบ owner_id ว่าใครเป็นเจ้าของ
+    new_tx = TransactionDB(
+        date=tx.date, 
+        title=tx.title, 
+        amount=tx.amount, 
+        ttype=tx.ttype,
+        owner_id=current_user.id  # 🔑 จุดสำคัญที่ทำให้เพิ่มข้อมูลได้!
+    )
     db.add(new_tx)
     db.commit()
     return {"message": "บันทึกรายการสำเร็จ!"}
 
 @app.delete("/transactions/{tx_id}")
-def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
-    tx = db.query(TransactionDB).filter(TransactionDB.id == tx_id).first()
+def delete_transaction(tx_id: int, db: Session = Depends(get_db), current_user: UserDB = Depends(get_current_user)):
+    # 🌟 อนุญาตให้ลบได้เฉพาะข้อมูลของตัวเองเท่านั้น
+    tx = db.query(TransactionDB).filter(TransactionDB.id == tx_id, TransactionDB.owner_id == current_user.id).first()
     if tx:
         db.delete(tx)
         db.commit()
