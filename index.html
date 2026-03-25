@@ -81,4 +81,299 @@
                                 <option value="income">รายรับ 📈</option>
                                 <option value="expense">รายจ่าย 📉</option>
                             </select>
-                            <button class="btn btn-primary w
+                            <button class="btn btn-primary w-100" onclick="addTransaction(event)">บันทึกข้อมูล</button>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm">
+                        <div class="card-body text-center">
+                            <h5 class="fw-bold mb-3 text-secondary">สัดส่วนรายรับ - รายจ่าย</h5>
+                            <div class="chart-container">
+                                <canvas id="myChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-7 mb-4">
+                    <h5 class="fw-bold mb-3 text-secondary">ประวัติการทำรายการ</h5>
+                    <div class="list-group shadow-sm" id="historyList" style="max-height: 500px; overflow-y: auto;">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // แก้ไข URL ให้ชี้ไปที่โดเมนหลักของหลังบ้าน
+        const API_URL = "https://money-i5du.onrender.com";
+
+        // ฟังก์ชันสลับไปหน้าแอป
+        function showApp() {
+            document.getElementById("auth-section").style.display = "none";
+            document.getElementById("app-section").style.display = "block";
+        }
+
+        // ฟังก์ชันสลับไปหน้าล็อกอิน
+        function showLogin() {
+            document.getElementById("auth-section").style.display = "block";
+            document.getElementById("app-section").style.display = "none";
+        }
+
+        const formatMoney = (number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(number);
+        document.getElementById('txDate').valueAsDate = new Date();
+
+        let chartInstance = null;
+        let allTransactions = []; 
+
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        function getThaiMonthYear(yyyyMm) {
+            const parts = yyyyMm.split('-');
+            const year = parts[0];
+            const monthIndex = parseInt(parts[1]) - 1;
+            return `${thaiMonths[monthIndex]} ${year}`;
+        }
+
+        function updateChart(income, expense) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            if (chartInstance != null) chartInstance.destroy();
+
+            if (income === 0 && expense === 0) {
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: ['ไม่มีข้อมูล'], datasets: [{ data: [1], backgroundColor: ['#e9ecef'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: false } } }
+                });
+                return;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['รายรับ', 'รายจ่าย'],
+                    datasets: [{
+                        data: [income, expense],
+                        backgroundColor: ['#198754', '#dc3545'],
+                        hoverOffset: 4, borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        // ดึงข้อมูลจากเซิร์ฟเวอร์
+        async function loadData() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                showLogin();
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/transactions`, {
+                method: "GET",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token 
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                // รองรับทั้งกรณีที่ API คืนเป็น list ตรงๆ หรือ คืนเป็น {"transactions": [...]}
+                allTransactions = Array.isArray(data) ? data : (data.transactions || []);
+
+                const monthFilter = document.getElementById("monthFilter");
+                const currentSelected = monthFilter.value;
+
+                const uniqueMonths = [...new Set(allTransactions.map(tx => tx.date.substring(0, 7)))].sort().reverse();
+                
+                monthFilter.innerHTML = '<option value="all">ดูทั้งหมด</option>';
+                uniqueMonths.forEach(month => {
+                    monthFilter.innerHTML += `<option value="${month}">${getThaiMonthYear(month)}</option>`;
+                });
+
+                if (currentSelected !== "all" && uniqueMonths.includes(currentSelected)) {
+                    monthFilter.value = currentSelected;
+                }
+
+                renderData();
+            } else {
+                alert("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+                logout();
+            }
+        }
+
+        // แสดงผลข้อมูล
+        function renderData() {
+            const selectedMonth = document.getElementById("monthFilter").value;
+            let filteredTransactions = allTransactions;
+
+            if (selectedMonth !== "all") {
+                filteredTransactions = allTransactions.filter(tx => tx.date.startsWith(selectedMonth));
+            }
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            const list = document.getElementById("historyList");
+            list.innerHTML = "";
+
+            filteredTransactions.forEach(tx => {
+                if (tx.ttype === "income") totalIncome += tx.amount;
+                else totalExpense += tx.amount;
+
+                const isIncome = tx.ttype === "income";
+                const sign = isIncome ? "+" : "-";
+                const colorClass = isIncome ? "text-success" : "text-danger";
+                const borderClass = isIncome ? "item-income" : "item-expense";
+
+                list.innerHTML += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3 ${borderClass}">
+                        <div>
+                            <span class="fs-5">${tx.title}</span><br>
+                            <small class="text-muted">📅 ${tx.date}</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-5 fw-bold ${colorClass}">${sign}${formatMoney(tx.amount).replace('฿', '')}</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="deleteTx(${tx.id})">❌</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const balance = totalIncome - totalExpense;
+            document.getElementById("balance").innerText = formatMoney(balance);
+            document.getElementById("total-income").innerText = formatMoney(totalIncome);
+            document.getElementById("total-expense").innerText = formatMoney(totalExpense);
+            
+            updateChart(totalIncome, totalExpense);
+        }
+
+        // เพิ่มรายการใหม่
+        async function addTransaction(event) {
+            if (event) event.preventDefault(); 
+
+            // แก้ชื่อ ID ให้ตรงกับใน HTML
+            const dateInput = document.getElementById("txDate").value;
+            const titleInput = document.getElementById("txTitle").value;
+            const amountInput = parseFloat(document.getElementById("txAmount").value);
+            const typeInput = document.getElementById("txType").value;
+
+            if (!titleInput || !amountInput) {
+                alert("กรุณากรอกชื่อรายการและจำนวนเงินให้ครบถ้วนครับ");
+                return;
+            }
+
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("กรุณาเข้าสู่ระบบก่อนเพิ่มข้อมูลครับ!");
+                showLogin();
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/transactions`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token 
+                },
+                body: JSON.stringify({
+                    date: dateInput,
+                    title: titleInput,
+                    amount: amountInput,
+                    ttype: typeInput
+                })
+            });
+
+            if (response.ok) {
+                document.getElementById("txTitle").value = "";
+                document.getElementById("txAmount").value = "";
+                loadData(); // เรียกให้โหลดข้อมูลใหม่
+            } else {
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลครับ (Token อาจจะหมดอายุ)");
+                logout(); 
+            }
+        }
+
+        // ลบรายการ
+        async function deleteTx(id) {
+            if(confirm("ลบรายการนี้ใช่หรือไม่?")) {
+                const token = localStorage.getItem("token");
+                await fetch(`${API_URL}/transactions/${id}`, { 
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": "Bearer " + token // 🌟 ใส่ Token ป้องกันไว้ให้แล้วครับ!
+                    }
+                });
+                loadData();
+            }
+        }
+
+        // สมัครสมาชิก
+        async function register() {
+            const u = document.getElementById("auth-username").value;
+            const p = document.getElementById("auth-password").value;
+            const msg = document.getElementById("auth-message");
+
+            if (!u || !p) {
+                msg.innerText = "กรุณากรอกชื่อและรหัสผ่านให้ครบถ้วนครับ";
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            if (response.ok) {
+                msg.style.color = "green";
+                msg.innerText = "🎉 สมัครสมาชิกสำเร็จ! กดปุ่มเข้าสู่ระบบได้เลยครับ";
+            } else {
+                const errorData = await response.json();
+                msg.style.color = "red";
+                msg.innerText = "❌ " + (errorData.detail || "เกิดข้อผิดพลาดในการสมัคร");
+            }
+        }
+
+        // เข้าสู่ระบบ
+        async function login() {
+            const u = document.getElementById("auth-username").value;
+            const p = document.getElementById("auth-password").value;
+            const msg = document.getElementById("auth-message");
+
+            const response = await fetch(`${API_URL}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem("token", data.access_token);
+                msg.innerText = ""; 
+                showApp();
+                loadData(); 
+            } else {
+                msg.style.color = "red";
+                msg.innerText = "❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้องครับ";
+            }
+        }
+
+        // ออกจากระบบ
+        function logout() {
+            localStorage.removeItem("token");
+            document.getElementById("auth-username").value = "";
+            document.getElementById("auth-password").value = "";
+            showLogin();
+        }
+
+        // 🌟 ตอนเปิดเว็บมาครั้งแรก ให้เช็คว่าเคยล็อกอินไว้หรือยัง
+        if (localStorage.getItem("token")) {
+            showApp();
+            loadData();
+        } else {
+            showLogin();
+        }
+    </script>
+</body>
+</html>
