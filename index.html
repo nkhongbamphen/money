@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>💰 กระเป๋าตังค์อัจฉริยะ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-summary { border-radius: 15px; color: white; }
+        .bg-balance { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
+        .bg-income { background: linear-gradient(135deg, #198754, #20c997); }
+        .bg-expense { background: linear-gradient(135deg, #dc3545, #f87171); }
+        .list-group-item { border-left: 5px solid transparent; }
+        .item-income { border-left-color: #198754; }
+        .item-expense { border-left-color: #dc3545; }
+        .chart-container { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <div class="container mt-5" style="max-width: 900px;">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold text-dark mb-0">📊 ระบบจัดการรายรับ-รายจ่าย</h2>
+            <select id="monthFilter" class="form-select w-auto shadow-sm border-primary" onchange="renderData()">
+                <option value="all">ดูทั้งหมด</option>
+            </select>
+        </div>
+
+        <div class="row text-center mb-4">
+            <div class="col-md-4 mb-2">
+                <div class="card card-summary bg-balance shadow-sm p-3">
+                    <h5>ยอดคงเหลือ</h5>
+                    <h3 id="balance">฿0.00</h3>
+                </div>
+            </div>
+            <div class="col-md-4 mb-2">
+                <div class="card card-summary bg-income shadow-sm p-3">
+                    <h5>รายรับรวม</h5>
+                    <h3 id="total-income">฿0.00</h3>
+                </div>
+            </div>
+            <div class="col-md-4 mb-2">
+                <div class="card card-summary bg-expense shadow-sm p-3">
+                    <h5>รายจ่ายรวม</h5>
+                    <h3 id="total-expense">฿0.00</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-5 mb-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-3 text-secondary">➕ เพิ่มรายการใหม่</h5>
+                        <input type="date" id="txDate" class="form-control mb-2">
+                        <input type="text" id="txTitle" class="form-control mb-2" placeholder="ชื่อรายการ">
+                        <input type="number" id="txAmount" class="form-control mb-2" placeholder="จำนวนเงิน">
+                        <select id="txType" class="form-select mb-3">
+                            <option value="income">รายรับ 📈</option>
+                            <option value="expense">รายจ่าย 📉</option>
+                        </select>
+                        <button class="btn btn-primary w-100" onclick="addTransaction()">บันทึกข้อมูล</button>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <h5 class="fw-bold mb-3 text-secondary">สัดส่วนรายรับ - รายจ่าย</h5>
+                        <div class="chart-container">
+                            <canvas id="myChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-7 mb-4">
+                <h5 class="fw-bold mb-3 text-secondary">ประวัติการทำรายการ</h5>
+                <div class="list-group shadow-sm" id="historyList" style="max-height: 500px; overflow-y: auto;">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000/transactions";
+        const formatMoney = (number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(number);
+
+        document.getElementById('txDate').valueAsDate = new Date();
+
+        let chartInstance = null;
+        let allTransactions = []; // 🌟 ตัวแปรเก็บข้อมูลทั้งหมดที่โหลดมาจากเซิร์ฟเวอร์
+
+        // 🌟 แปลง ปี-เดือน (เช่น 2026-03) เป็นชื่อเดือนภาษาไทย (มีนาคม 2026)
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        function getThaiMonthYear(yyyyMm) {
+            const parts = yyyyMm.split('-');
+            const year = parts[0];
+            const monthIndex = parseInt(parts[1]) - 1;
+            return `${thaiMonths[monthIndex]} ${year}`;
+        }
+
+        function updateChart(income, expense) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            if (chartInstance != null) chartInstance.destroy();
+
+            if (income === 0 && expense === 0) {
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: ['ไม่มีข้อมูล'], datasets: [{ data: [1], backgroundColor: ['#e9ecef'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: false } } }
+                });
+                return;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['รายรับ', 'รายจ่าย'],
+                    datasets: [{
+                        data: [income, expense],
+                        backgroundColor: ['#198754', '#dc3545'],
+                        hoverOffset: 4, borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        // 1. ดึงข้อมูลจากเซิร์ฟเวอร์แค่ครั้งเดียว แล้วสร้างตัวเลือกเดือน
+        async function loadData() {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            allTransactions = data.transactions; // เก็บข้อมูลลงตัวแปรหลัก
+
+            const monthFilter = document.getElementById("monthFilter");
+            const currentSelected = monthFilter.value; // จำค่าเดิมที่เลือกไว้
+
+            // หาว่ามีเดือนไหนบ้างในระบบ (รูปแบบ YYYY-MM) โดยใช้ Set ช่วยตัดตัวซ้ำออก
+            const uniqueMonths = [...new Set(allTransactions.map(tx => tx.date.substring(0, 7)))].sort().reverse();
+            
+            // สร้าง Dropdown ใหม่
+            monthFilter.innerHTML = '<option value="all">ดูทั้งหมด</option>';
+            uniqueMonths.forEach(month => {
+                monthFilter.innerHTML += `<option value="${month}">${getThaiMonthYear(month)}</option>`;
+            });
+
+            // คืนค่าที่เลือกไว้ ถ้าเดือนนั้นยังมีอยู่
+            if (currentSelected !== "all" && uniqueMonths.includes(currentSelected)) {
+                monthFilter.value = currentSelected;
+            }
+
+            renderData(); // สั่งให้แสดงผลตามตัวกรอง
+        }
+
+        // 🌟 2. ฟังก์ชันคำนวณและแสดงผล (แยกตามเดือนที่เลือก)
+        function renderData() {
+            const selectedMonth = document.getElementById("monthFilter").value;
+            let filteredTransactions = allTransactions;
+
+            // กรองข้อมูลเฉพาะเดือนที่เลือก (ถ้าไม่ได้เลือก "ดูทั้งหมด")
+            if (selectedMonth !== "all") {
+                filteredTransactions = allTransactions.filter(tx => tx.date.startsWith(selectedMonth));
+            }
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            const list = document.getElementById("historyList");
+            list.innerHTML = "";
+
+            // วนลูปวาดรายการของเดือนนั้นๆ
+            filteredTransactions.forEach(tx => {
+                if (tx.ttype === "income") totalIncome += tx.amount;
+                else totalExpense += tx.amount;
+
+                const isIncome = tx.ttype === "income";
+                const sign = isIncome ? "+" : "-";
+                const colorClass = isIncome ? "text-success" : "text-danger";
+                const borderClass = isIncome ? "item-income" : "item-expense";
+
+                list.innerHTML += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3 ${borderClass}">
+                        <div>
+                            <span class="fs-5">${tx.title}</span><br>
+                            <small class="text-muted">📅 ${tx.date}</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-5 fw-bold ${colorClass}">${sign}${formatMoney(tx.amount).replace('฿', '')}</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="deleteTx(${tx.id})">❌</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // อัปเดตตัวเลขและกราฟของเดือนที่เลือก
+            const balance = totalIncome - totalExpense;
+            document.getElementById("balance").innerText = formatMoney(balance);
+            document.getElementById("total-income").innerText = formatMoney(totalIncome);
+            document.getElementById("total-expense").innerText = formatMoney(totalExpense);
+            
+            updateChart(totalIncome, totalExpense);
+        }
+
+        // 3. เพิ่มรายการใหม่
+        async function addTransaction() {
+            const date = document.getElementById("txDate").value;
+            const title = document.getElementById("txTitle").value;
+            const amount = parseFloat(document.getElementById("txAmount").value);
+            const ttype = document.getElementById("txType").value;
+
+            if (!date || !title || isNaN(amount) || amount <= 0) {
+                alert("กรุณากรอกข้อมูลให้ครบและถูกต้องครับ!");
+                return;
+            }
+
+            await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ date, title, amount, ttype })
+            });
+
+            document.getElementById("txTitle").value = "";
+            document.getElementById("txAmount").value = "";
+            loadData(); // ดึงข้อมูลใหม่และเรนเดอร์ใหม่
+        }
+
+        // 4. ลบรายการ
+        async function deleteTx(id) {
+            if(confirm("ลบรายการนี้ใช่หรือไม่?")) {
+                await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+                loadData();
+            }
+        }
+
+        // เปิดเว็บมาครั้งแรก ให้โหลดข้อมูล
+        loadData();
+    </script>
+</body>
+</html>
