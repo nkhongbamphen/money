@@ -7,7 +7,7 @@ from datetime import date
 
 # 1. ตั้งค่าฐานข้อมูล SQLite
 SQLALCHEMY_DATABASE_URL = "postgresql://neondb_owner:npg_yA7FNdYx9gPz@ep-blue-wave-a19zu27r-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
