@@ -15,23 +15,71 @@
         .item-income { border-left-color: #198754; }
         .item-expense { border-left-color: #dc3545; }
         .chart-container { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
+        /* 🌟 โซนตกแต่งหน้าล็อกอินให้ดูแพง */
+        .auth-card {
+            background: white;
+            padding: 2.5rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            max-width: 400px;
+            margin: 10vh auto;
+            border: 1px solid #edf2f7;
+        }
+        .auth-input {
+            border-radius: 12px;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+            width: 100%;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+            transition: all 0.3s;
+        }
+        .auth-input:focus {
+            background-color: #ffffff;
+            border-color: #0d6efd;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+        }
+        .auth-btn {
+            border-radius: 12px;
+            padding: 12px;
+            font-weight: bold;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        .auth-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* 🌟 โซนลูกเล่นเวลาเอาเมาส์ชี้รายการ (Hover Effect) */
+        .list-group-item {
+            border-left: 5px solid transparent;
+            border-radius: 10px !important;
+            margin-bottom: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .list-group-item:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
-    <div id="auth-section" style="text-align: center; margin-top: 50px;">
-        <h2>🔒 เข้าสู่ระบบ Smart Wallet</h2>
-        
-        <div style="margin-bottom: 10px;">
-            <input type="text" id="auth-username" placeholder="ชื่อผู้ใช้" style="padding: 8px; width: 200px;">
+    <div id="auth-section" class="container">
+        <div class="auth-card text-center">
+            <h2 class="fw-bold mb-4" style="color: #2c3e50;">🔒 Smart Wallet</h2>
+            <p class="text-muted mb-4">จัดการเงินของคุณอย่างชาญฉลาด</p>
+            
+            <input type="text" id="auth-username" class="auth-input" placeholder="👤 ชื่อผู้ใช้">
+            <input type="password" id="auth-password" class="auth-input" placeholder="🔑 รหัสผ่าน">
+            
+            <button onclick="login()" class="btn btn-primary auth-btn shadow-sm">เข้าสู่ระบบ</button>
+            <button onclick="register()" class="btn btn-outline-secondary auth-btn bg-white shadow-sm">สร้างบัญชีใหม่</button>
+            
+            <p id="auth-message" class="mt-3 mb-0 fw-bold" style="font-size: 14px;"></p>
         </div>
-        <div style="margin-bottom: 10px;">
-            <input type="password" id="auth-password" placeholder="รหัสผ่าน" style="padding: 8px; width: 200px;">
-        </div>
-        
-        <button onclick="login()" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">เข้าสู่ระบบ</button>
-        <button onclick="register()" style="padding: 8px 15px; background-color: #2196F3; color: white; border: none; cursor: pointer;">สมัครสมาชิก</button>
-        
-        <p id="auth-message" style="color: red; font-size: 14px; margin-top: 15px;"></p>
     </div>
 
     <div id="app-section" style="display: none;">
