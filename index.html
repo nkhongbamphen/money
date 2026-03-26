@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <title>💰 กระเป๋าตังค์อัจฉริยะ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card-summary { border-radius: 15px; color: white; }
         .bg-balance { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
         .bg-income { background: linear-gradient(135deg, #198754, #20c997); }
         .bg-expense { background: linear-gradient(135deg, #dc3545, #f87171); }
-        .list-group-item { border-left: 5px solid transparent; }
-        .item-income { border-left-color: #198754; }
-        .item-expense { border-left-color: #dc3545; }
         .chart-container { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
+        
         /* 🌟 โซนตกแต่งหน้าล็อกอินให้ดูแพง */
         .auth-card {
             background: white;
@@ -64,6 +63,8 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             z-index: 1;
         }
+        .item-income { border-left-color: #198754; }
+        .item-expense { border-left-color: #dc3545; }
     </style>
 </head>
 <body>
@@ -77,18 +78,15 @@
             
             <button onclick="login()" class="btn btn-primary auth-btn shadow-sm">เข้าสู่ระบบ</button>
             <button onclick="register()" class="btn btn-outline-secondary auth-btn bg-white shadow-sm">สร้างบัญชีใหม่</button>
-            
-            <p id="auth-message" class="mt-3 mb-0 fw-bold" style="font-size: 14px;"></p>
         </div>
     </div>
 
     <div id="app-section" style="display: none;">
         <div style="text-align: right; padding: 10px; max-width: 900px; margin: 0 auto;">
-            <button onclick="logout()" style="background-color: #f44336; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 5px;">🚪 ออกจากระบบ</button>
+            <button onclick="logout()" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm">🚪 ออกจากระบบ</button>
         </div>
 
         <div class="container mt-2" style="max-width: 900px;">
-            
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold text-dark mb-0">📊 ระบบจัดการรายรับ-รายจ่าย</h2>
                 <select id="monthFilter" class="form-select w-auto shadow-sm border-primary" onchange="renderData()">
@@ -119,7 +117,7 @@
 
             <div class="row">
                 <div class="col-md-5 mb-4">
-                    <div class="card shadow-sm mb-4">
+                    <div class="card shadow-sm mb-4 border-0">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 text-secondary">➕ เพิ่มรายการใหม่</h5>
                             <input type="date" id="txDate" class="form-control mb-2">
@@ -129,11 +127,11 @@
                                 <option value="income">รายรับ 📈</option>
                                 <option value="expense">รายจ่าย 📉</option>
                             </select>
-                            <button class="btn btn-primary w-100" onclick="addTransaction(event)">บันทึกข้อมูล</button>
+                            <button class="btn btn-primary w-100 fw-bold rounded-pill" onclick="addTransaction(event)">บันทึกข้อมูล</button>
                         </div>
                     </div>
 
-                    <div class="card shadow-sm">
+                    <div class="card shadow-sm border-0">
                         <div class="card-body text-center">
                             <h5 class="fw-bold mb-3 text-secondary">สัดส่วนรายรับ - รายจ่าย</h5>
                             <div class="chart-container">
@@ -145,7 +143,7 @@
 
                 <div class="col-md-7 mb-4">
                     <h5 class="fw-bold mb-3 text-secondary">ประวัติการทำรายการ</h5>
-                    <div class="list-group shadow-sm" id="historyList" style="max-height: 500px; overflow-y: auto;">
+                    <div class="list-group shadow-sm border-0" id="historyList" style="max-height: 500px; overflow-y: auto;">
                         </div>
                 </div>
             </div>
@@ -153,16 +151,13 @@
     </div>
 
     <script>
-        // แก้ไข URL ให้ชี้ไปที่โดเมนหลักของหลังบ้าน
         const API_URL = "https://money-i5du.onrender.com";
 
-        // ฟังก์ชันสลับไปหน้าแอป
         function showApp() {
             document.getElementById("auth-section").style.display = "none";
             document.getElementById("app-section").style.display = "block";
         }
 
-        // ฟังก์ชันสลับไปหน้าล็อกอิน
         function showLogin() {
             document.getElementById("auth-section").style.display = "block";
             document.getElementById("app-section").style.display = "none";
@@ -209,7 +204,7 @@
             });
         }
 
-        // ดึงข้อมูลจากเซิร์ฟเวอร์
+        // โหลดข้อมูล
         async function loadData() {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -219,20 +214,15 @@
 
             const response = await fetch(`${API_URL}/transactions`, {
                 method: "GET",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token 
-                }
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }
             });
             
             if (response.ok) {
                 const data = await response.json();
-                // รองรับทั้งกรณีที่ API คืนเป็น list ตรงๆ หรือ คืนเป็น {"transactions": [...]}
                 allTransactions = Array.isArray(data) ? data : (data.transactions || []);
 
                 const monthFilter = document.getElementById("monthFilter");
                 const currentSelected = monthFilter.value;
-
                 const uniqueMonths = [...new Set(allTransactions.map(tx => tx.date.substring(0, 7)))].sort().reverse();
                 
                 monthFilter.innerHTML = '<option value="all">ดูทั้งหมด</option>';
@@ -246,12 +236,16 @@
 
                 renderData();
             } else {
-                alert("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
-                logout();
+                Swal.fire({
+                    icon: 'info',
+                    title: 'หมดเวลาใช้งาน',
+                    text: 'เซสชันของคุณหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่ครับ',
+                    confirmButtonColor: '#0d6efd'
+                }).then(() => logout());
             }
         }
 
-        // แสดงผลข้อมูล
+        // แสดงผล
         function renderData() {
             const selectedMonth = document.getElementById("monthFilter").value;
             let filteredTransactions = allTransactions;
@@ -282,7 +276,7 @@
                         </div>
                         <div class="d-flex align-items-center gap-3">
                             <span class="fs-5 fw-bold ${colorClass}">${sign}${formatMoney(tx.amount).replace('฿', '')}</span>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="deleteTx(${tx.id})">❌</button>
+                            <button class="btn btn-sm btn-outline-danger shadow-sm" onclick="deleteTx(${tx.id})">ลบ</button>
                         </div>
                     </div>
                 `;
@@ -296,11 +290,10 @@
             updateChart(totalIncome, totalExpense);
         }
 
-        // เพิ่มรายการใหม่
+        // เพิ่มรายการ
         async function addTransaction(event) {
             if (event) event.preventDefault(); 
 
-            // แก้ชื่อ ID ให้ตรงกับใน HTML
             const dateInput = document.getElementById("txDate").value;
             const titleInput = document.getElementById("txTitle").value;
             const amountInput = parseFloat(document.getElementById("txAmount").value);
@@ -313,49 +306,28 @@
 
             const token = localStorage.getItem("token");
             if (!token) {
-                alert("กรุณาเข้าสู่ระบบก่อนเพิ่มข้อมูลครับ!");
-                showLogin();
+                Swal.fire({ icon: 'error', title: 'ยังไม่ได้เข้าสู่ระบบ', text: 'กรุณาเข้าสู่ระบบก่อนเพิ่มข้อมูลครับ!', confirmButtonColor: '#0d6efd' }).then(() => showLogin());
                 return;
             }
 
-            // ... (โค้ดช่วงแรกเหมือนเดิม) ...
-
             const response = await fetch(`${API_URL}/transactions`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token 
-                },
-                body: JSON.stringify({
-                    date: dateInput,
-                    title: titleInput,
-                    amount: amountInput,
-                    ttype: typeInput // ⚠️ จุดที่มักจะผิดคือคำว่า ttype ครับ
-                })
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify({ date: dateInput, title: titleInput, amount: amountInput, ttype: typeInput })
             });
 
             if (response.ok) {
                 document.getElementById("txTitle").value = "";
                 document.getElementById("txAmount").value = "";
-
-                // 🌟 แจ้งเตือนเมื่อบันทึกสำเร็จแบบ Popup เล็กๆ มุมขวาบน (Toast)
                 Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'บันทึกข้อมูลสำเร็จ', showConfirmButton: false, timer: 1500 });
-                
                 loadData(); 
-
             } else {
-                // 🌟 เพิ่มโค้ดส่วนนี้ เพื่อดักจับ Error จากหลังบ้านมาโชว์!
-                const errorData = await response.json();
-                console.log(errorData); // ปริ้นลง Console
-                alert("เซิร์ฟเวอร์แจ้งเตือน: " + JSON.stringify(errorData)); 
-                // ชั่วคราว: ปิดฟังก์ชัน logout() ไว้ก่อน จะได้ไม่ต้องล็อกอินใหม่รัวๆ
-                // logout(); 
+                Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: 'ระบบอาจมีปัญหาหรือเซสชันหมดอายุ', confirmButtonColor: '#0d6efd' });
             }
         }
 
         // ลบรายการ
         async function deleteTx(id) {
-            // 🌟 เปลี่ยนจาก confirm() เป็นหน้าต่างยืนยันของ SweetAlert2
             Swal.fire({
                 title: 'ยืนยันการลบ?',
                 text: "คุณจะไม่สามารถกู้คืนรายการนี้ได้!",
@@ -370,22 +342,22 @@
                     const token = localStorage.getItem("token");
                     await fetch(`${API_URL}/transactions/${id}`, { 
                         method: "DELETE",
-                        headers: {
-                        "Authorization": "Bearer " + token // 🌟 ใส่ Token ป้องกันไว้ให้แล้วครับ!
-                    }
-                });
-                loadData();
-            }
+                        headers: { "Authorization": "Bearer " + token }
+                    });
+                    
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'ลบรายการสำเร็จ', showConfirmButton: false, timer: 1500 });
+                    loadData();
+                }
+            });
         }
 
         // สมัครสมาชิก
         async function register() {
             const u = document.getElementById("auth-username").value;
             const p = document.getElementById("auth-password").value;
-            const msg = document.getElementById("auth-message");
 
             if (!u || !p) {
-                msg.innerText = "กรุณากรอกชื่อและรหัสผ่านให้ครบถ้วนครับ";
+                Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่านครับ', confirmButtonColor: '#0d6efd' });
                 return;
             }
 
@@ -396,12 +368,10 @@
             });
 
             if (response.ok) {
-                msg.style.color = "green";
-                msg.innerText = "🎉 สมัครสมาชิกสำเร็จ! กดปุ่มเข้าสู่ระบบได้เลยครับ";
+                Swal.fire({ icon: 'success', title: 'สมัครสมาชิกสำเร็จ!', text: 'คุณสามารถเข้าสู่ระบบได้เลยครับ', confirmButtonColor: '#198754' });
             } else {
                 const errorData = await response.json();
-                msg.style.color = "red";
-                msg.innerText = "❌ " + (errorData.detail || "เกิดข้อผิดพลาดในการสมัคร");
+                Swal.fire({ icon: 'error', title: 'สมัครไม่สำเร็จ', text: errorData.detail || "เกิดข้อผิดพลาดในการสมัคร", confirmButtonColor: '#dc3545' });
             }
         }
 
@@ -409,7 +379,11 @@
         async function login() {
             const u = document.getElementById("auth-username").value;
             const p = document.getElementById("auth-password").value;
-            const msg = document.getElementById("auth-message");
+
+            if (!u || !p) {
+                Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่านครับ', confirmButtonColor: '#0d6efd' });
+                return;
+            }
 
             const response = await fetch(`${API_URL}/login`, {
                 method: "POST",
@@ -420,12 +394,11 @@
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem("token", data.access_token);
-                msg.innerText = ""; 
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', showConfirmButton: false, timer: 1500 });
                 showApp();
                 loadData(); 
             } else {
-                msg.style.color = "red";
-                msg.innerText = "❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้องครับ";
+                Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบล้มเหลว', text: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้องครับ', confirmButtonColor: '#dc3545' });
             }
         }
 
@@ -435,9 +408,9 @@
             document.getElementById("auth-username").value = "";
             document.getElementById("auth-password").value = "";
             showLogin();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'ออกจากระบบแล้ว', showConfirmButton: false, timer: 1500 });
         }
 
-        // 🌟 ตอนเปิดเว็บมาครั้งแรก ให้เช็คว่าเคยล็อกอินไว้หรือยัง
         if (localStorage.getItem("token")) {
             showApp();
             loadData();
