@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>💰 กระเป๋าตังค์อัจฉริยะ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card-summary { border-radius: 15px; color: white; }
@@ -307,7 +307,7 @@
             const typeInput = document.getElementById("txType").value;
 
             if (!titleInput || !amountInput) {
-                alert("กรุณากรอกชื่อรายการและจำนวนเงินให้ครบถ้วนครับ");
+                Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกชื่อรายการและจำนวนเงินให้ครบถ้วนครับ', confirmButtonColor: '#0d6efd' });
                 return;
             }
 
@@ -337,7 +337,12 @@
             if (response.ok) {
                 document.getElementById("txTitle").value = "";
                 document.getElementById("txAmount").value = "";
+
+                // 🌟 แจ้งเตือนเมื่อบันทึกสำเร็จแบบ Popup เล็กๆ มุมขวาบน (Toast)
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'บันทึกข้อมูลสำเร็จ', showConfirmButton: false, timer: 1500 });
+                
                 loadData(); 
+
             } else {
                 // 🌟 เพิ่มโค้ดส่วนนี้ เพื่อดักจับ Error จากหลังบ้านมาโชว์!
                 const errorData = await response.json();
@@ -350,11 +355,22 @@
 
         // ลบรายการ
         async function deleteTx(id) {
-            if(confirm("ลบรายการนี้ใช่หรือไม่?")) {
-                const token = localStorage.getItem("token");
-                await fetch(`${API_URL}/transactions/${id}`, { 
-                    method: "DELETE",
-                    headers: {
+            // 🌟 เปลี่ยนจาก confirm() เป็นหน้าต่างยืนยันของ SweetAlert2
+            Swal.fire({
+                title: 'ยืนยันการลบ?',
+                text: "คุณจะไม่สามารถกู้คืนรายการนี้ได้!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ใช่, ลบเลย!',
+                cancelButtonText: 'ยกเลิก'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const token = localStorage.getItem("token");
+                    await fetch(`${API_URL}/transactions/${id}`, { 
+                        method: "DELETE",
+                        headers: {
                         "Authorization": "Bearer " + token // 🌟 ใส่ Token ป้องกันไว้ให้แล้วครับ!
                     }
                 });
